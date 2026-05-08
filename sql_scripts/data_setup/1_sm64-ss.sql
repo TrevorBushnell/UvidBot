@@ -1,10 +1,10 @@
-CREATE TABLE IF NOT EXISTS sm64_stars (
+CREATE TABLE IF NOT EXISTS sm64_ss (
     id TEXT PRIMARY KEY,
     name TEXT NOT NULL,
     ss_rta BOOLEAN NOT NULL DEFAULT 0
 );
 
-INSERT INTO sm64_stars (id, name) VALUES 
+INSERT INTO sm64_ss (id, name) VALUES 
 -- C1: Bob-omb Battlefield
 ('bob1', 'Big Bob-omb on the Summit'), ('bob2', 'Footrace with Koopa the Quick'), ('bob3', 'Shoot to the Island in the Sky'), ('bob4', 'Find the Eight Red Coins'), ('bob5', 'Mario Wings to the Sky'), ('bob6', 'Behind Chain Chomp''s Gate'), ('bob100', '100 Coin Star'),
 -- C2: Whomp''s Fortress
@@ -36,4 +36,5 @@ INSERT INTO sm64_stars (id, name) VALUES
 -- C15: Rainbow Ride
 ('rr1', 'Cruiser Crossing the Rainbow'), ('rr2', 'The Big House in the Sky'), ('rr3', 'Coins Amassed in a Maze'), ('rr4', 'Swingin'' in the Breeze'), ('rr5', 'Tricky Triangles!'), ('rr6', 'Somewhere Over the Rainbow'), ('rr100', '100 Coin Star'),
 -- Castle Secret Stars
-('pss1', 'The Princess''s Secret Slide (Box)'), ('pss2', 'The Princess''s Secret Slide (Under 21s)'), ('sa', 'The Secret Aquarium'), ('wmotr', 'Wing Mario Over the Rainbow'), ('wc', 'Tower of the Wing Cap (Red Coins)'), ('vc', 'Vanish Cap Under the Moat (Red Coins)'), ('bitfs', 'Bowser in the Fire Sea (Red Coins)'), ('bitdw', 'Bowser in the Dark World (Red Coins)'), ('bits', 'Bowser in the Sky (Red Coins)'), ('mc', 'Cavern of the Metal Cap (Red Coins)'), ('bitdwc', 'Bowser in the Dark World (Course)'), ('bitfsc', 'Bowser in the Fire Sea (Course)'), ('bitsc', 'Bowser in the Sky (Course)');
+('pss1', 'The Princess''s Secret Slide (Box)'), ('pss2', 'The Princess''s Secret Slide (Under 21s)'), ('sa', 'The Secret Aquarium'), ('wmotr', 'Wing Mario Over the Rainbow'), ('wc', 'Tower of the Wing Cap (Red Coins)'), ('vc', 'Vanish Cap Under the Moat (Red Coins)'), ('bitfs', 'Bowser in the Fire Sea (Red Coins)'), ('bitdw', 'Bowser in the Dark World (Red Coins)'), ('bits', 'Bowser in the Sky (Red Coins)'), ('mc', 'Cavern of the Metal Cap (Red Coins)'), ('bitdwc', 'Bowser in the Dark World (Course)'), ('bitfsc', 'Bowser in the Fire Sea (Course)'), ('bitsc', 'Bowser in the Sky (Course)')
+ON CONFLICT DO NOTHING;
