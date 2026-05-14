@@ -19,10 +19,12 @@
   },
   "homepage": "https://github.com/TrevorBushnell/UvidBot#readme",
   "dependencies": {
+    "better-sqlite3": "^12.9.0",
     "discord.js": "^14.26.3",
     "dotenv": "^17.4.2"
   },
   "devDependencies": {
+    "@types/better-sqlite3": "^7.6.13",
     "@types/dotenv": "^6.1.1",
     "@types/node": "^25.6.0",
     "ts-node": "^10.9.2",
