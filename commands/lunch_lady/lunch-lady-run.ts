@@ -97,6 +97,12 @@ module.exports = {
             participants.sort((a, b) => a.localeCompare(b));
 
             const numPlayers = participants.length;
+
+            if (numPlayers > 4) {
+                await message.reply("❌ Error: A maximum of 4 players is allowed for Lunch Lady runs.");
+                return;
+            }
+
             const runnersList = participants.join(', ');
 
             try {
