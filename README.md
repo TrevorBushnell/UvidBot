@@ -15,6 +15,8 @@ A discord bot for my primary Discord social server. Pretty much an excuse for me
 
 ### How to Use
 
-Run with `npx tsx uvidbot.ts`
+I personally use `tsx` for running Typescript projects, so...
 
-To update the server with newly developed commands, run `npx tsx deploy-commands.ts`
+Run with `tsx uvidbot.ts`
+
+To update the server with newly developed commands, run `tsx deploy-commands.ts`
