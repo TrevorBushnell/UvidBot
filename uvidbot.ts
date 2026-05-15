@@ -73,22 +73,3 @@ client.on(Events.InteractionCreate, async (interaction: Interaction) => {
 		}
 	}
 });
-
-client.on("messageCreate", async (message) => {
-    console.log(message)
-
-    // ignore messages from bots
-    if (message.author.bot) return;
-
-    if (message.author.username === "frobuddyharry") {
-        message.channel.send("I would be careful what you say Harrison");
-    }
-    
-    if (message.author.username === "alien__5") {
-        message.channel.send("Alien be liking shit in his ass")
-    }
-
-    if (message.author.username === "glitchypbpr") {
-        message.channel.send("unmute tbh")
-    }
-});

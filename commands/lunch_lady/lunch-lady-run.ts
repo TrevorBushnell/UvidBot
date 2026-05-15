@@ -57,13 +57,15 @@ module.exports = {
         collector.on('collect', async (message: Message) => {
             const pingedUsers = message.mentions.users;
 
-            // Create list of participants starting with the command user
-            const participants = [interaction.user.username];
+            // Create list of participants
+            const participants = [interaction.user.displayName];
             pingedUsers.forEach(user => {
-                if (user.username !== interaction.user.username) {
-                    participants.push(user.username);
+                if (user.id !== interaction.user.id) {
+                    participants.push(user.displayName);
                 }
             });
+
+            participants.sort((a, b) => a.localeCompare(b));
 
             const numPlayers = participants.length;
             const runnersList = participants.join(', ');
@@ -72,8 +74,13 @@ module.exports = {
                 const dbPath = path.join(__dirname, '..', '..', 'main.db');
                 const db = new Database(dbPath);
 
-                const stmt = db.prepare('INSERT INTO lunch_lady (id, category, num_players, runners, time) VALUES (?, ?, ?, ?, ?)');
-                stmt.run(randomUUID(), stage, numPlayers, runnersList, time);
+                const updateStmt = db.prepare('UPDATE lunch_lady SET time = ?, num_players = ? WHERE category = ? AND runners = ?');
+                const result = updateStmt.run(time, numPlayers, stage, runnersList);
+
+                if (result.changes === 0) {
+                    const insertStmt = db.prepare('INSERT INTO lunch_lady (id, category, num_players, runners, time) VALUES (?, ?, ?, ?, ?)');
+                    insertStmt.run(randomUUID(), stage, numPlayers, runnersList, time);
+                }
                 db.close();
 
                 await message.reply(`✅ **Run Saved!**\n**Category:** ${stage}\n**Time:** ${time}\n**Players (${numPlayers}):** ${runnersList}`);
