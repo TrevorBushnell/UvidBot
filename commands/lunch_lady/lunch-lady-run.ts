@@ -3,6 +3,31 @@ import Database from 'better-sqlite3';
 import path from 'node:path';
 import { randomUUID } from 'node:crypto';
 
+/**
+ * Parses and formats a time string for Lunch Lady runs into MM:SS.MMM format.
+ * Supports input like "1:03.123" (interpreted as 01:03.123).
+ *
+ * @param inputTime The raw time string from the user.
+ * @returns Formatted time string (MM:SS.MMM) or null if invalid.
+ */
+function formatLunchLadyTime(inputTime: string): string | null {
+    const match = inputTime.match(/^(\d{1,2}):(\d{2})\.(\d{3})$/);
+    if (!match) {
+        return null; // Invalid format
+    }
+
+    let minutes = parseInt(match[1], 10);
+    let seconds = parseInt(match[2], 10);
+    let milliseconds = parseInt(match[3], 10);
+
+    if (isNaN(minutes) || isNaN(seconds) || isNaN(milliseconds) ||
+        minutes < 0 || seconds < 0 || milliseconds < 0 ||
+        seconds >= 60 || milliseconds >= 1000) { // Milliseconds can be 0-999
+        return null; // Invalid numeric values or ranges
+    }
+    return `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}.${String(milliseconds).padStart(3, '0')}`;
+}
+
 module.exports = {
     data: new SlashCommandBuilder()
         .setName('lunch-lady-run')
@@ -31,15 +56,15 @@ module.exports = {
         ),
     async execute(interaction: ChatInputCommandInteraction) {
         const stage = interaction.options.getString('stage', true);
-        const time = interaction.options.getString('time', true);
+        const rawTime = interaction.options.getString('time', true);
 
-        // Simple regex to validate the mm:ss.mmm format
-        const timeRegex = /^\d{2}:\d{2}\.\d{3}$/;
+        const formattedTime = formatLunchLadyTime(rawTime);
 
-        if (!timeRegex.test(time)) {
+        if (!formattedTime) {
             await interaction.reply({ content: 'Invalid time format! Please use **mm:ss.mmm** (e.g., 05:23.450).', ephemeral: true });
             return;
         }
+        const time = formattedTime; // Use the formatted time from now on
 
         await interaction.reply(`Lunch Lady run recorded! Stage: **${stage}**, Time: **${time}**.\n\nWho else was involved? Please @ ping the users below within 60 seconds. (It is assumed that you participated in the run)`);
 
@@ -57,13 +82,17 @@ module.exports = {
         collector.on('collect', async (message: Message) => {
             const pingedUsers = message.mentions.users;
 
-            // Create list of participants
-            const participants = [interaction.user.displayName];
-            pingedUsers.forEach(user => {
-                if (user.id !== interaction.user.id) {
-                    participants.push(user.displayName);
-                }
-            });
+            // Initialize participants with the user who triggered the command
+            const participants: string[] = [interaction.user.displayName];
+
+            // Add mentioned users if they aren't the sender and aren't bots
+            if (pingedUsers.size > 0) {
+                pingedUsers.forEach(user => {
+                    if (user.id !== interaction.user.id && !user.bot) {
+                        participants.push(user.displayName);
+                    }
+                });
+            }
 
             participants.sort((a, b) => a.localeCompare(b));
 
