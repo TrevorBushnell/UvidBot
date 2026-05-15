@@ -101,18 +101,43 @@ module.exports = {
 
             try {
                 const dbPath = path.join(__dirname, '..', '..', 'main.db');
-                const db = new Database(dbPath);
 
-                const updateStmt = db.prepare('UPDATE lunch_lady SET time = ?, num_players = ? WHERE category = ? AND runners = ?');
-                const result = updateStmt.run(time, numPlayers, stage, runnersList);
+                const getExisting = () => {
+                    const db = new Database(dbPath);
+                    const record = db.prepare('SELECT time FROM lunch_lady WHERE category = ? AND runners = ?').get(stage, runnersList) as { time: string } | undefined;
+                    db.close();
+                    return record;
+                };
 
-                if (result.changes === 0) {
-                    const insertStmt = db.prepare('INSERT INTO lunch_lady (id, category, num_players, runners, time) VALUES (?, ?, ?, ?, ?)');
-                    insertStmt.run(randomUUID(), stage, numPlayers, runnersList, time);
+                const saveToDb = () => {
+                    const db = new Database(dbPath);
+                    const updateStmt = db.prepare('UPDATE lunch_lady SET time = ?, num_players = ? WHERE category = ? AND runners = ?');
+                    const result = updateStmt.run(time, numPlayers, stage, runnersList);
+                    if (result.changes === 0) {
+                        const insertStmt = db.prepare('INSERT INTO lunch_lady (id, category, num_players, runners, time) VALUES (?, ?, ?, ?, ?)');
+                        insertStmt.run(randomUUID(), stage, numPlayers, runnersList, time);
+                    }
+                    db.close();
+                };
+
+                const existingRecord = getExisting();
+
+                if (existingRecord && time > existingRecord.time) {
+                    await message.reply(`⚠️ Your new time (**${time}**) is slower than your existing record (**${existingRecord.time}**). If you still want to save this, reply with **OVERWRITE** within 60 seconds.`);
+
+                    const overwriteFilter = (m: Message) => m.author.id === interaction.user.id;
+                    const overwriteCollector = message.channel.createMessageCollector({ filter: overwriteFilter, max: 1, time: 60000 });
+
+                    overwriteCollector.on('collect', async (m: Message) => {
+                        if (m.content === 'OVERWRITE') {
+                            saveToDb();
+                            await message.reply(`✅ **Run Overwritten!**\n**Category:** ${stage}\n**Time:** ${time}\n**Players (${numPlayers}):** ${runnersList}`);
+                        }
+                    });
+                } else {
+                    saveToDb();
+                    await message.reply(`✅ **Run Saved!**\n**Category:** ${stage}\n**Time:** ${time}\n**Players (${numPlayers}):** ${runnersList}`);
                 }
-                db.close();
-
-                await message.reply(`✅ **Run Saved!**\n**Category:** ${stage}\n**Time:** ${time}\n**Players (${numPlayers}):** ${runnersList}`);
             } catch (err) {
                 console.error(err);
                 await message.reply("There was an error saving the run to the database.");
