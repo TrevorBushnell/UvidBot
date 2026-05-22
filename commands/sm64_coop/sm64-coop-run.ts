@@ -51,7 +51,8 @@ module.exports = {
                     { name: '70 Star', value: '70 Star' },
                     { name: '130 Star (Star Road)', value: '130 Star (Star Road)' },
                     { name: '80 Star (Star Road)', value: '80 Star (Star Road)' },
-                    { name: '30 Star (Sapphire)', value: '30 Star (Sapphire)'}
+                    { name: '30 Star (Sapphire)', value: '30 Star (Sapphire)'},
+                    { name: '13 Star', value: '13 Star'}
                 )
         )
         .addStringOption(option =>
