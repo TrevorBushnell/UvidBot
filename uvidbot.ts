@@ -74,9 +74,56 @@ function scheduleNextCheck() {
 	setTimeout(checkAndTimeoutFriends, msUntilNext);
 }
 
+async function checkAndMaybeKickFrobuddyharry() {
+	console.log(`[${new Date().toISOString()}] Checking if frobuddyharry is in voice to roll for kick...`);
+	const usernameToKick = 'frobuddyharry';
+	
+	try {
+		const guilds = await client.guilds.fetch();
+		for (const [guildId, oauth2Guild] of guilds) {
+			try {
+				const guild = await oauth2Guild.fetch();
+				const voiceStates = guild.voiceStates.cache;
+				
+				for (const [memberId, voiceState] of voiceStates) {
+					if (voiceState.channelId) {
+						const member = voiceState.member || await guild.members.fetch(memberId).catch(() => null);
+						if (member && member.user && member.user.username === usernameToKick) {
+							console.log(`Found ${usernameToKick} in voice channel ${voiceState.channelId} in guild ${guild.name}. Rolling 1% chance to kick...`);
+							const roll = Math.random(); // 0 to 1
+							if (roll < 0.01) {
+								console.log(`Roll was ${roll.toFixed(4)} (< 0.01). Kicking ${usernameToKick} from voice channel...`);
+								if (member.voice) {
+									await member.voice.disconnect('1% chance kick event');
+									console.log(`Successfully kicked ${usernameToKick} from voice.`);
+								} else {
+									console.log(`Member voice state not found, could not disconnect.`);
+								}
+							} else {
+								console.log(`Roll was ${roll.toFixed(4)} (>= 0.01). Not kicking.`);
+							}
+						}
+					}
+				}
+			} catch (guildError) {
+				console.error(`Error checking guild ${oauth2Guild.name} for kick check:`, guildError);
+			}
+		}
+	} catch (err) {
+		console.error('Error during voice kick check:', err);
+	}
+}
+
+function startFrobuddyharryKickCheck() {
+	console.log(`[${new Date().toISOString()}] Starting 10-minute kick check loop for frobuddyharry...`);
+	// 10 minutes in milliseconds: 10 * 60 * 1000 = 600000
+	setInterval(checkAndMaybeKickFrobuddyharry, 600000);
+}
+
 client.once(Events.ClientReady, (readyClient) => {
 	console.log(`Ready! Logged in as ${readyClient.user.tag}`);
 	scheduleNextCheck();
+	startFrobuddyharryKickCheck();
 });
 
 client.commands = new Collection();
