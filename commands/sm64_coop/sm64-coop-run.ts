@@ -1,4 +1,4 @@
-import { ChatInputCommandInteraction, SlashCommandBuilder, Message } from "discord.js";
+import { ChatInputCommandInteraction, SlashCommandBuilder, Message, TextChannel } from "discord.js";
 import Database from 'better-sqlite3';
 import path from 'node:path';
 import { randomUUID } from 'node:crypto';
@@ -79,7 +79,7 @@ module.exports = {
         // Filter to ensure only the user who ran the command can provide the pings
         const filter = (m: Message) => m.author.id === interaction.user.id;
 
-        const collector = interaction.channel.createMessageCollector({
+        const collector = (interaction.channel as TextChannel).createMessageCollector({
             filter,
             max: 1,
             time: 60000
@@ -132,7 +132,7 @@ module.exports = {
                     await message.reply(`⚠️ Your new time (**${time}**) is slower than your existing record (**${existingRecord.time}**). If you still want to save this, reply with **OVERWRITE** within 60 seconds.`);
 
                     const overwriteFilter = (m: Message) => m.author.id === interaction.user.id;
-                    const overwriteCollector = message.channel.createMessageCollector({ filter: overwriteFilter, max: 1, time: 60000 });
+                    const overwriteCollector = (message.channel as TextChannel).createMessageCollector({ filter: overwriteFilter, max: 1, time: 60000 });
 
                     overwriteCollector.on('collect', async (m: Message) => {
                         if (m.content === 'OVERWRITE') {

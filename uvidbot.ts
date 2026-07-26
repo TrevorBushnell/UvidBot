@@ -1,8 +1,11 @@
 import dotenv from 'dotenv'
 dotenv.config()
 
-import { Client, Collection, Events, Interaction, GatewayIntentBits, MessageFlags, CommandInteraction } from 'discord.js';
+import { Client, Collection, Events, Interaction, GatewayIntentBits, MessageFlags, CommandInteraction, TextChannel } from 'discord.js';
 import { SlashCommand } from './types';
+import Database from 'better-sqlite3';
+import * as state from './uvidbot_state';
+import { getLeaderboardContent, selectNewDailyStar, selectNewDaily100Star, announceDailyStars } from './utils/sm64_daily_rta';
 
 const fs = require('node:fs');
 const path = require('node:path');
@@ -64,9 +67,68 @@ function startFrobuddyharryKickCheck() {
 
 client.once(Events.ClientReady, (readyClient) => {
 	console.log(`Ready! Logged in as ${readyClient.user.tag}`);
-	scheduleNextCheck();
 	startFrobuddyharryKickCheck();
+	scheduleDailyStarSelection();
 });
+
+async function selectDailySm64Star() {
+	console.log(`[${new Date().toISOString()}] Transitioning previous daily SM64 star and selecting a new one...`);
+	try {
+		if (state.currentDailyStarId && state.currentDailyStarName) {
+			const leaderboardMessage = getLeaderboardContent(state.currentDailyStarId, state.currentDailyStarName);
+
+			const guilds = await client.guilds.fetch();
+			for (const [guildId, oauth2Guild] of guilds) {
+				try {
+					const guild = await oauth2Guild.fetch();
+					await guild.channels.fetch();
+					const channel = guild.channels.cache.find(c => c.name === 'sm64-daily-rta' && c.isTextBased()) as TextChannel | undefined;
+					if (channel) {
+						await channel.send(leaderboardMessage);
+						console.log(`Sent final leaderboard for previous daily star to #sm64-daily-rta in guild ${guild.name}`);
+					}
+				} catch (guildErr) {
+					console.error(`Error sending leaderboard message in guild ${oauth2Guild.name}:`, guildErr);
+				}
+			}
+
+			const dbPath = path.join(__dirname, 'main.db');
+			const db = new Database(dbPath);
+			
+			db.prepare('UPDATE sm64_ss SET ss_rta = true WHERE id = ?').run(state.currentDailyStarId);
+			db.close();
+		}
+
+		await selectNewDailyStar(client);
+
+		(state as any).daysUntil100CoinReroll = ((state as any).daysUntil100CoinReroll || 0) + 1;
+
+		if ((state as any).daysUntil100CoinReroll === 3 || !state.currentDaily100StarId) {
+			console.log(`[${new Date().toISOString()}] 3 days reached (or initial). Rerolling 100-coin star...`);
+			await selectNewDaily100Star(client);
+			(state as any).daysUntil100CoinReroll = 0;
+		} else {
+			console.log(`[${new Date().toISOString()}] Keeping current 100-coin star (${state.currentDaily100StarName}). Days until next reroll: ${3 - (state as any).daysUntil100CoinReroll}`);
+		}
+
+		await announceDailyStars(client);
+	} catch (err) {
+		console.error('Error in daily star transition:', err);
+	}
+}
+
+function scheduleDailyStarSelection() {
+	const now = new Date();
+	const nextRun = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1, 0, 0, 0, 0);
+	const delay = nextRun.getTime() - now.getTime();
+
+	console.log(`[${new Date().toISOString()}] Scheduling next daily SM64 star selection in ${Math.round(delay / 1000 / 60)} minutes (at midnight).`);
+
+	setTimeout(() => {
+		selectDailySm64Star();
+		setInterval(selectDailySm64Star, 24 * 60 * 60 * 1000);
+	}, delay);
+}
 
 client.commands = new Collection();
 
