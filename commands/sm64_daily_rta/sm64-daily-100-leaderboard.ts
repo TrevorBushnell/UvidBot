@@ -1,6 +1,6 @@
 import { ChatInputCommandInteraction, SlashCommandBuilder } from "discord.js";
 import { getLeaderboardContent, getStarName } from '../../utils/sm64_daily_rta';
-import { currentDaily100StarId, currentDaily100StarName } from '../../uvidbot_state';
+import { state } from '../../uvidbot_state';
 
 module.exports = {
     data: new SlashCommandBuilder()
@@ -25,12 +25,12 @@ module.exports = {
                 return;
             }
         } else {
-            if (!currentDaily100StarId || !currentDaily100StarName) {
+            if (!state.currentDaily100StarId || !state.currentDaily100StarName) {
                 await interaction.reply({ content: '❌ There is no active SM64 daily 100-coin star right now.', ephemeral: true });
                 return;
             }
-            starId = currentDaily100StarId;
-            starName = currentDaily100StarName;
+            starId = state.currentDaily100StarId;
+            starName = state.currentDaily100StarName;
         }
 
         const content = getLeaderboardContent(starId, starName);

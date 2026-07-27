@@ -4,7 +4,7 @@ dotenv.config()
 import { Client, Collection, Events, Interaction, GatewayIntentBits, MessageFlags, CommandInteraction, TextChannel } from 'discord.js';
 import { SlashCommand } from './types';
 import Database from 'better-sqlite3';
-import * as state from './uvidbot_state';
+import { state } from './uvidbot_state';
 import { getLeaderboardContent, selectNewDailyStar, selectNewDaily100Star, announceDailyStars } from './utils/sm64_daily_rta';
 
 const fs = require('node:fs');
@@ -101,14 +101,14 @@ async function selectDailySm64Star() {
 
 		await selectNewDailyStar(client);
 
-		(state as any).daysUntil100CoinReroll = ((state as any).daysUntil100CoinReroll || 0) + 1;
+		state.daysUntil100CoinReroll = (state.daysUntil100CoinReroll || 0) + 1;
 
-		if ((state as any).daysUntil100CoinReroll === 3 || !state.currentDaily100StarId) {
+		if (state.daysUntil100CoinReroll === 3 || !state.currentDaily100StarId) {
 			console.log(`[${new Date().toISOString()}] 3 days reached (or initial). Rerolling 100-coin star...`);
 			await selectNewDaily100Star(client);
-			(state as any).daysUntil100CoinReroll = 0;
+			state.daysUntil100CoinReroll = 0;
 		} else {
-			console.log(`[${new Date().toISOString()}] Keeping current 100-coin star (${state.currentDaily100StarName}). Days until next reroll: ${3 - (state as any).daysUntil100CoinReroll}`);
+			console.log(`[${new Date().toISOString()}] Keeping current 100-coin star (${state.currentDaily100StarName}). Days until next reroll: ${3 - state.daysUntil100CoinReroll}`);
 		}
 
 		await announceDailyStars(client);

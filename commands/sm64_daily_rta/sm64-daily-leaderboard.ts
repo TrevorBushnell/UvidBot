@@ -1,6 +1,6 @@
 import { ChatInputCommandInteraction, SlashCommandBuilder } from "discord.js";
 import { getLeaderboardContent, getStarName } from '../../utils/sm64_daily_rta';
-import { currentDailyStarId, currentDailyStarName } from '../../uvidbot_state';
+import { state } from '../../uvidbot_state';
 
 module.exports = {
     data: new SlashCommandBuilder()
@@ -25,12 +25,12 @@ module.exports = {
                 return;
             }
         } else {
-            if (!currentDailyStarId || !currentDailyStarName) {
+            if (!state.currentDailyStarId || !state.currentDailyStarName) {
                 await interaction.reply({ content: '❌ There is no active SM64 daily star right now.', ephemeral: true });
                 return;
             }
-            starId = currentDailyStarId;
-            starName = currentDailyStarName;
+            starId = state.currentDailyStarId;
+            starName = state.currentDailyStarName;
         }
 
         const content = getLeaderboardContent(starId, starName);

@@ -1,6 +1,6 @@
 import { ChatInputCommandInteraction, SlashCommandBuilder } from "discord.js";
 import { selectNewDaily100Star, announceDailyStars } from '../../utils/sm64_daily_rta';
-import * as state from '../../uvidbot_state';
+import { state } from '../../uvidbot_state';
 
 module.exports = {
     data: new SlashCommandBuilder()
@@ -30,7 +30,7 @@ module.exports = {
             }
 
             await selectNewDaily100Star(interaction.client);
-            (state as any).daysUntil100CoinReroll = 0;
+            state.daysUntil100CoinReroll = 0;
             await announceDailyStars(interaction.client);
         } catch (err) {
             console.error('Error rerolling daily 100-coin star:', err);

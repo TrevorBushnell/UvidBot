@@ -1,7 +1,6 @@
 import Database from 'better-sqlite3';
 import path from 'node:path';
-import { currentDailyStarId, currentDailyStarName, currentDaily100StarId, currentDaily100StarName } from '../uvidbot_state';
-import * as state from '../uvidbot_state';
+import { state } from '../uvidbot_state';
 
 export function getLeaderboardContent(starId: string, starName: string): string {
     const dbPath = path.join(__dirname, '..', 'main.db');
@@ -58,8 +57,8 @@ export async function selectNewDailyStar(client: any) {
         const sm64_daily_id = chosenStar.id;
         const sm64_daily_name = chosenStar.name;
 
-        (state as any).currentDailyStarId = sm64_daily_id;
-        (state as any).currentDailyStarName = sm64_daily_name;
+        state.currentDailyStarId = String(sm64_daily_id);
+        state.currentDailyStarName = sm64_daily_name;
 
         console.log(`Selected SM64 star: ID ${sm64_daily_id}, Name: ${sm64_daily_name}`);
     } catch (err) {
@@ -83,8 +82,8 @@ export async function selectNewDaily100Star(client: any) {
         const sm64_daily_id = chosenStar.id;
         const sm64_daily_name = chosenStar.name;
 
-        (state as any).currentDaily100StarId = sm64_daily_id;
-        (state as any).currentDaily100StarName = sm64_daily_name;
+        state.currentDaily100StarId = String(sm64_daily_id);
+        state.currentDaily100StarName = sm64_daily_name;
 
         console.log(`Selected SM64 100-coin star: ID ${sm64_daily_id}, Name: ${sm64_daily_name}`);
     } catch (err) {
@@ -94,7 +93,7 @@ export async function selectNewDaily100Star(client: any) {
 
 export async function announceDailyStars(client: any) {
     const currentDate = new Date().toISOString().split('T')[0];
-    const message = `## ${currentDate} Single Star RTA Challenge\n* Single Star: ${currentDailyStarName}\n* 100 Coin Star: ${currentDaily100StarName}`;
+    const message = `## ${currentDate} Single Star RTA Challenge\n* Single Star: ${state.currentDailyStarName}\n* 100 Coin Star: ${state.currentDaily100StarName}`;
 
     console.log(`[${new Date().toISOString()}] Announcing daily stars to #sm64-daily-rta...`);
     try {
