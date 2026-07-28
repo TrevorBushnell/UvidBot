@@ -117,17 +117,27 @@ async function selectDailySm64Star() {
 	}
 }
 
+function getMsUntilMidnightPT(): number {
+  const now = new Date();
+
+  const ptNow = new Date(now.toLocaleString('en-US', { timeZone: 'America/Los_Angeles' }));
+
+  const ptTomorrow = new Date(ptNow);
+  ptTomorrow.setDate(ptTomorrow.getDate() + 1);
+  ptTomorrow.setHours(0, 0, 0, 0);
+
+  return ptTomorrow.getTime() - ptNow.getTime();
+}
+
 function scheduleDailyStarSelection() {
-	const now = new Date();
-	const nextRun = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1, 0, 0, 0, 0);
-	const delay = nextRun.getTime() - now.getTime();
+  const delay = getMsUntilMidnightPT();
 
-	console.log(`[${new Date().toISOString()}] Scheduling next daily SM64 star selection in ${Math.round(delay / 1000 / 60)} minutes (at midnight).`);
+  console.log(`[${new Date().toISOString()}] Scheduling next daily SM64 star selection in ${Math.round(delay / 60000)} minutes.`);
 
-	setTimeout(() => {
-		selectDailySm64Star();
-		setInterval(selectDailySm64Star, 24 * 60 * 60 * 1000);
-	}, delay);
+  setTimeout(async () => {
+    await selectDailySm64Star();
+    scheduleDailyStarSelection();
+  }, delay);
 }
 
 client.commands = new Collection();
