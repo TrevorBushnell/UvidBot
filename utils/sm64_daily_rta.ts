@@ -2,6 +2,38 @@ import Database from 'better-sqlite3';
 import path from 'node:path';
 import { state } from '../uvidbot_state';
 
+/**
+ * Parses a time string into total seconds for comparison.
+ */
+export function parseTimeToSeconds(timeStr: any): number | null {
+    if (timeStr == null) return null;
+    const trimmed = String(timeStr).trim();
+    const parts = trimmed.split(':');
+    if (parts.length > 3) return null;
+
+    let seconds = 0;
+    if (parts.length === 3) {
+        const h = parseFloat(parts[0]);
+        const m = parseFloat(parts[1]);
+        const s = parseFloat(parts[2]);
+        if (isNaN(h) || isNaN(m) || isNaN(s)) return null;
+        seconds = h * 3600 + m * 60 + s;
+    } else if (parts.length === 2) {
+        const m = parseFloat(parts[0]);
+        const s = parseFloat(parts[1]);
+        if (isNaN(m) || isNaN(s)) return null;
+        seconds = m * 60 + s;
+    } else if (parts.length === 1) {
+        const s = parseFloat(parts[0]);
+        if (isNaN(s)) return null;
+        seconds = s;
+    } else {
+        return null;
+    }
+
+    return isNaN(seconds) ? null : seconds;
+}
+
 export function getLeaderboardContent(starId: string, starName: string): string {
     const dbPath = path.join(__dirname, '..', 'main.db');
     const db = new Database(dbPath);

@@ -117,20 +117,26 @@ async function selectDailySm64Star() {
 	}
 }
 
-function getMsUntilMidnightPT(): number {
-  const now = new Date();
-
-  const ptNow = new Date(now.toLocaleString('en-US', { timeZone: 'America/Los_Angeles' }));
-
-  const ptTomorrow = new Date(ptNow);
-  ptTomorrow.setDate(ptTomorrow.getDate() + 1);
-  ptTomorrow.setHours(0, 0, 0, 0);
-
-  return ptTomorrow.getTime() - ptNow.getTime();
-}
-
 function scheduleDailyStarSelection() {
-  const delay = getMsUntilMidnightPT();
+  const now = new Date();
+  const nowUtcTime = now.getTime();
+
+  const targetToday = new Date(Date.UTC(
+      now.getUTCFullYear(),
+      now.getUTCMonth(),
+      now.getUTCDate(),
+      10, 0, 0, 0
+  ));
+
+  let targetTime = targetToday.getTime();
+
+  if (nowUtcTime >= targetTime) {
+      const targetTomorrow = new Date(targetToday);
+      targetTomorrow.setUTCDate(targetTomorrow.getUTCDate() + 1);
+      targetTime = targetTomorrow.getTime();
+  }
+
+  const delay = targetTime - nowUtcTime;
 
   console.log(`[${new Date().toISOString()}] Scheduling next daily SM64 star selection in ${Math.round(delay / 60000)} minutes.`);
 

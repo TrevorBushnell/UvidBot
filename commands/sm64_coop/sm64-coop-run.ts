@@ -1,4 +1,13 @@
-import { ChatInputCommandInteraction, SlashCommandBuilder, Message, TextChannel } from "discord.js";
+import { 
+    ChatInputCommandInteraction, 
+    SlashCommandBuilder, 
+    Message, 
+    TextChannel, 
+    ActionRowBuilder, 
+    ButtonBuilder, 
+    ButtonStyle, 
+    ComponentType 
+} from "discord.js";
 import Database from 'better-sqlite3';
 import path from 'node:path';
 import { randomUUID } from 'node:crypto';
@@ -129,15 +138,56 @@ module.exports = {
                 const existingRecord = getExisting();
 
                 if (existingRecord && time > existingRecord.time) {
-                    await message.reply(`⚠️ Your new time (**${time}**) is slower than your existing record (**${existingRecord.time}**). If you still want to save this, reply with **OVERWRITE** within 60 seconds.`);
+                    const confirmButton = new ButtonBuilder()
+                        .setCustomId('confirm_coop_overwrite')
+                        .setLabel('Overwrite Time')
+                        .setStyle(ButtonStyle.Danger);
 
-                    const overwriteFilter = (m: Message) => m.author.id === interaction.user.id;
-                    const overwriteCollector = (message.channel as TextChannel).createMessageCollector({ filter: overwriteFilter, max: 1, time: 60000 });
+                    const cancelButton = new ButtonBuilder()
+                        .setCustomId('cancel_coop_overwrite')
+                        .setLabel('Cancel')
+                        .setStyle(ButtonStyle.Secondary);
 
-                    overwriteCollector.on('collect', async (m: Message) => {
-                        if (m.content === 'OVERWRITE') {
+                    const row = new ActionRowBuilder<ButtonBuilder>()
+                        .addComponents(confirmButton, cancelButton);
+
+                    const response = await message.reply({
+                        content: `⚠️ Your new time (**${time}**) is slower than your existing record (**${existingRecord.time}**). Are you sure you want to overwrite it?`,
+                        components: [row]
+                    });
+
+                    const buttonCollector = response.createMessageComponentCollector({
+                        componentType: ComponentType.Button,
+                        filter: (i) => i.user.id === interaction.user.id,
+                        time: 60000
+                    });
+
+                    let handled = false;
+
+                    buttonCollector.on('collect', async (buttonInteraction) => {
+                        handled = true;
+                        buttonCollector.stop();
+
+                        if (buttonInteraction.customId === 'confirm_coop_overwrite') {
                             saveToDb();
-                            await message.reply(`✅ **Run Overwritten!**\n**Category:** ${category}\n**Time:** ${time}\n**Players (${numPlayers}):** ${runnersList}`);
+                            await buttonInteraction.update({
+                                content: `✅ **Run Overwritten!**\n**Category:** ${category}\n**Time:** ${time}\n**Players (${numPlayers}):** ${runnersList}`,
+                                components: []
+                            });
+                        } else if (buttonInteraction.customId === 'cancel_coop_overwrite') {
+                            await buttonInteraction.update({
+                                content: `❌ Overwrite canceled. Your existing record (**${existingRecord.time}**) was kept.`,
+                                components: []
+                            });
+                        }
+                    });
+
+                    buttonCollector.on('end', async (_, reason) => {
+                        if (!handled) {
+                            await response.edit({
+                                content: `⏳ Time expired. Run was not overwritten.`,
+                                components: []
+                            });
                         }
                     });
                 } else {

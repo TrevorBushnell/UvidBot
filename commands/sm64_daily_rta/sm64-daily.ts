@@ -1,8 +1,16 @@
-import { ChatInputCommandInteraction, SlashCommandBuilder, TextChannel, Message } from "discord.js";
+import { 
+    ChatInputCommandInteraction, 
+    SlashCommandBuilder, 
+    ActionRowBuilder, 
+    ButtonBuilder, 
+    ButtonStyle, 
+    ComponentType 
+} from "discord.js";
 import Database from 'better-sqlite3';
 import path from 'node:path';
 import { randomUUID } from 'node:crypto';
 import { state } from '../../uvidbot_state';
+import { parseTimeToSeconds } from '../../utils/sm64_daily_rta';
 
 module.exports = {
     data: new SlashCommandBuilder()
@@ -25,11 +33,18 @@ module.exports = {
         const run_id = state.currentDailyStarId;
         const starName = state.currentDailyStarName;
 
+        const newSeconds = parseTimeToSeconds(time);
+        if (newSeconds === null) {
+            await interaction.reply({ content: '❌ Invalid time format! Please use format like `05:23.450`, `02:15`, or `59.56`.', ephemeral: true });
+            return;
+        }
+
         try {
             const dbPath = path.join(__dirname, '..', '..', 'main.db');
             const db = new Database(dbPath);
 
-            const existingRecord = db.prepare('SELECT id, time FROM sm64_daily_rta WHERE star_id = ? AND player = ?').get(run_id, player) as { id: string; time: string } | undefined;
+            const existingRecord = db.prepare('SELECT id, time FROM sm64_daily_rta WHERE star_id = ? AND player = ?')
+                .get(run_id, player) as { id: string; time: string } | undefined;
 
             if (!existingRecord) {
                 const insertStmt = db.prepare('INSERT INTO sm64_daily_rta (id, star_id, player, time) VALUES (?, ?, ?, ?)');
@@ -37,43 +52,78 @@ module.exports = {
                 db.close();
 
                 await interaction.reply(`✅ Daily run saved for **${starName}**! Player: **${player}**, Time: **${time}**.`);
-            } else if (time > existingRecord.time) {
-                db.close();
-                await interaction.reply(`⚠️ Your new time (**${time}**) is slower than your existing record (**${existingRecord.time}**). If you still want to save this, please type **CONFIRM** within 60 seconds.`);
-
-                if (!interaction.channel) return;
-
-                const filter = (m: Message) => m.author.id === interaction.user.id;
-                const collector = (interaction.channel as TextChannel).createMessageCollector({
-                    filter,
-                    max: 1,
-                    time: 60000
-                });
-
-                collector.on('collect', async (message: Message) => {
-                    if (message.content.trim() === 'CONFIRM') {
-                        const db = new Database(dbPath);
-                        const updateStmt = db.prepare('UPDATE sm64_daily_rta SET time = ? WHERE star_id = ? AND player = ?');
-                        updateStmt.run(time, run_id, player);
-                        db.close();
-
-                        await message.reply(`✅ **Run Overwritten!** Daily run saved for **${starName}**! Player: **${player}**, Time: **${time}**.`);
-                    } else {
-                        await message.reply(`❌ Confirmation not received or incorrect. Run was not overwritten.`);
-                    }
-                });
-
-                collector.on('end', async (collected, reason) => {
-                    if (reason === 'time' && collected.size === 0) {
-                        await interaction.followUp({ content: `⏳ Time expired. Run was not overwritten.`, ephemeral: true });
-                    }
-                });
             } else {
-                const updateStmt = db.prepare('UPDATE sm64_daily_rta SET time = ? WHERE star_id = ? AND player = ?');
-                updateStmt.run(time, run_id, player);
-                db.close();
+                const existingSeconds = parseTimeToSeconds(existingRecord.time);
+                const isSlower = existingSeconds !== null ? newSeconds > existingSeconds : time > existingRecord.time;
 
-                await interaction.reply(`✅ Daily run updated/saved for **${starName}**! Player: **${player}**, Time: **${time}**.`);
+                if (isSlower) {
+                    db.close();
+
+                    // Create action buttons for confirmation
+                    const confirmButton = new ButtonBuilder()
+                        .setCustomId('confirm_overwrite')
+                        .setLabel('Overwrite Time')
+                        .setStyle(ButtonStyle.Danger);
+
+                    const cancelButton = new ButtonBuilder()
+                        .setCustomId('cancel_overwrite')
+                        .setLabel('Cancel')
+                        .setStyle(ButtonStyle.Secondary);
+
+                    const row = new ActionRowBuilder<ButtonBuilder>()
+                        .addComponents(confirmButton, cancelButton);
+
+                    const response = await interaction.reply({
+                        content: `⚠️ Your new time (**${time}**) is slower than your existing record (**${existingRecord.time}**). Are you sure you want to overwrite it?`,
+                        components: [row],
+                        fetchReply: true
+                    });
+
+                    const collector = response.createMessageComponentCollector({
+                        componentType: ComponentType.Button,
+                        filter: (i) => i.user.id === interaction.user.id,
+                        time: 60000
+                    });
+
+                    let handled = false;
+
+                    collector.on('collect', async (buttonInteraction) => {
+                        handled = true;
+                        collector.stop();
+
+                        if (buttonInteraction.customId === 'confirm_overwrite') {
+                            const dbUpdate = new Database(dbPath);
+                            const updateStmt = dbUpdate.prepare('UPDATE sm64_daily_rta SET time = ? WHERE star_id = ? AND player = ?');
+                            updateStmt.run(time, run_id, player);
+                            dbUpdate.close();
+
+                            await buttonInteraction.update({
+                                content: `✅ **Run Overwritten!** Daily run saved for **${starName}**! Player: **${player}**, Time: **${time}**.`,
+                                components: []
+                            });
+                        } else if (buttonInteraction.customId === 'cancel_overwrite') {
+                            await buttonInteraction.update({
+                                content: `❌ Overwrite canceled. Your existing record (**${existingRecord.time}**) was kept.`,
+                                components: []
+                            });
+                        }
+                    });
+
+                    collector.on('end', async (_, reason) => {
+                        if (!handled) {
+                            await interaction.editReply({
+                                content: `⏳ Time expired. Run was not overwritten.`,
+                                components: []
+                            });
+                        }
+                    });
+                } else {
+                    const updateStmt = db.prepare('UPDATE sm64_daily_rta SET time = ? WHERE star_id = ? AND player = ?');
+                    updateStmt.run(time, run_id, player);
+                    db.close();
+
+                    await interaction.reply(`✅ Daily run updated/saved for **${starName}**! Player: **${player}**, Time: **${time}**.`);
+                }
             }
         } catch (err) {
             console.error('Error saving sm64 daily run:', err);
