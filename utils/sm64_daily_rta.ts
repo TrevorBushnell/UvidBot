@@ -42,7 +42,7 @@ export function getLeaderboardContent(starId: string, starName: string): string 
         SELECT player, time
         FROM sm64_daily_rta
         WHERE star_id = ?
-        ORDER BY time ASC;
+        ORDER BY time ASC, submitted_at DESC;
     `).all(starId) as { player: string; time: string }[];
 
     db.close();
